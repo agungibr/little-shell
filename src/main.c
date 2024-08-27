@@ -1,4 +1,9 @@
-#include <sys/wait.h>
+#ifdef _WIN32
+    #include <windows.h>
+#else
+    #include <sys/wait.h>
+#endif
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -16,9 +21,9 @@ int lsh_exit(char **args);
     List of builtin commands, followed by their corresponding functions
 */
 char *builtin_str[] = {
-    "cd";
-    "help";
-    "exit";
+    "cd",
+    "help",
+    "exit"
 };
 
 int (*builtin_func[]) (char **) = {
@@ -66,23 +71,6 @@ int lsh_exit(char **args)
     return 0;
 }
 
-int lsh_execute(char **args)
-{
-    int i;
-    
-    if (args[0] == NULL) {
-        //an empty command was entered
-        return 1;
-    }
-
-    for (i = 0; i < lsh_num_builtins(); i++) {
-        if (strcmp(args[0], builtin_str[i]) == 0) {
-            return (*builtin_func[i])(args);
-        }
-    }
-    return lsh_launch(args);
-}
-
 int lsh_launch(char **args)
 {
     pid_t pid;
@@ -107,38 +95,21 @@ int lsh_launch(char **args)
     return 1;
 }
 
-/*
-define LSH_TOK_BUFSIZE 64
-define LSH_TOK_DELIM " \t\r\n\a"
-*/
-char **lsh_split_line(char *line)
+int lsh_execute(char **args)
 {
-    int bufsize = LSH_TOK_BUFSIZE, position = 0;
-    char **tokens = malloc(bufsize * sizeof(char*));
-    char *token;
-
-    if (!tokens) {
-        fprintf(stderr, "lsh: allocation error\n");
-        exit(EXIT_FAILURE);
+    int i;
+    
+    if (args[0] == NULL) {
+        //an empty command was entered
+        return 1;
     }
 
-    token = strtok(line, LSH_TOK_DELIM);
-    while (token != NULL) {
-        tokens[position] = token;
-        position++
-
-        if (position >= bufsize) {
-            bufsize += LSH_TOK_BUFSIZE;
-            tokens = realloc(tokens, bufsize * sizeof(char*));
-            if (!tokens) {
-                fprintf(stderr, "lsh: allocation error\n");
-                exit(EXIT_FAILURE);
-            }
+    for (i = 0; i < lsh_num_builtins(); i++) {
+        if (strcmp(args[0], builtin_str[i]) == 0) {
+            return (*builtin_func[i])(args);
         }
-        token = strtok(NULL, LSH_TOK_DELIM);
     }
-    tokens[position] = NULL;
-    return tokens;
+    return lsh_launch(args);
 }
 
 char *lsh_read_line(void)
@@ -155,11 +126,8 @@ char *lsh_read_line(void)
         }
     }
     return line;
-}
 
-/* define LSH_RL_BUFSIZE 1024 */
-char *lsh_read_line(void)
-{
+    /* define LSH_RL_BUFSIZE 1024 */
     int bufsize = LSH_RL_BUFSIZE;
     int position = 0;
     char **buffer = malloc(sizeof(char) * bufsize);
@@ -195,6 +163,40 @@ char *lsh_read_line(void)
     }
 }
 
+/*
+define LSH_TOK_BUFSIZE 64
+define LSH_TOK_DELIM " \t\r\n\a"
+*/
+char **lsh_split_line(char *line)
+{
+    int bufsize = LSH_TOK_BUFSIZE, position = 0;
+    char **tokens = malloc(bufsize * sizeof(char*));
+    char *token;
+
+    if (!tokens) {
+        fprintf(stderr, "lsh: allocation error\n");
+        exit(EXIT_FAILURE);
+    }
+
+    token = strtok(line, LSH_TOK_DELIM);
+    while (token != NULL) {
+        tokens[position] = token;
+        position++;
+
+        if (position >= bufsize) {
+            bufsize += LSH_TOK_BUFSIZE;
+            tokens = realloc(tokens, bufsize * sizeof(char*));
+            if (!tokens) {
+                fprintf(stderr, "lsh: allocation error\n");
+                exit(EXIT_FAILURE);
+            }
+        }
+        token = strtok(NULL, LSH_TOK_DELIM);
+    }
+    tokens[position] = NULL;
+    return tokens;
+}
+
 void lsh_loop(void)
 {
     char *line;
@@ -220,3 +222,7 @@ int main(int argc, char **argv)
     //perform any shutdown/cleanup
     return EXIT_SUCCESS;
 }
+
+/*
+    Brennan, S. (2015, January 8). main.c. LSH (Libstephen SHell).
+*/
