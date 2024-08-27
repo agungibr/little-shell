@@ -224,5 +224,5 @@ int main(int argc, char **argv)
 }
 
 /*
-    Brennan, S. (2015, January 8). main.c. LSH (Libstephen SHell).
+    copyright Stephen Brennan, 8 January 2015.
 */
